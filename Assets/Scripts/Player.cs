@@ -4,16 +4,23 @@ using UnityEngine;
 
 public class Player : MonoBehaviour
 {
+    //public variables
     public float speed;
     public float jumppwr;
 
+    //moving variables
     float hAxis;
     float vAxis;
     Vector3 moveVec;
+    Vector3 dodgeVec;
+
+    //action shift variables
     bool wDown;
     bool jDown;
     bool isJumping;
+    bool isDodging;
 
+    //interaction variables
     Rigidbody rigid;
     Animator anim;
 
@@ -28,9 +35,12 @@ public class Player : MonoBehaviour
     void Update()
     {
         GetInput();
+
         Move();
+
         Turn();
         Jump();
+        Dodge();
     }
 
     void GetInput()
@@ -45,6 +55,9 @@ public class Player : MonoBehaviour
     {
         moveVec = new Vector3(hAxis, 0, vAxis).normalized;
 
+        if(isDodging)
+            moveVec = dodgeVec;
+
         transform.position += moveVec * speed * Time.deltaTime * (wDown ? 0.3f : 1f);
 
         anim.SetBool("isRunning", moveVec != Vector3.zero);
@@ -58,12 +71,32 @@ public class Player : MonoBehaviour
 
     void Jump()
     {
-        if (jDown && !isJumping){
+        if (jDown && moveVec == Vector3.zero && !isJumping && !isDodging){
             rigid.AddForce(Vector3.up * jumppwr, ForceMode.Impulse);
-            isJumping = true;
             anim.SetBool("isJumping", true);
+            anim.SetTrigger("doJumping");
+            isJumping = true;
         }
     }
+
+    void Dodge()
+    {
+        if (jDown && (moveVec != Vector3.zero) && !isJumping){ 
+            dodgeVec = moveVec;
+            speed *= 2;
+            anim.SetTrigger("doDodging");
+            isDodging = true;
+
+            Invoke("DodgeOut", 0.4f);
+        }
+    }
+
+    void DodgeOut()
+    {
+        speed *= 0.5f;
+        isDodging = false;
+    }
+
 
     void OnCollisionEnter(Collision collision)
     {
